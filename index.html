@@ -169,20 +169,25 @@
         </main>
 
         <!-- Bottom Navigation -->
-        <nav class="bg-white border-t border-gray-200 py-3 px-6 flex justify-around fixed bottom-0 w-full max-w-md">
-            <button id="nav-home" class="nav-button flex flex-col items-center text-gray-500 active-tab">
-                <i class="fas fa-home text-xl mb-1"></i>
-                <span class="text-xs">Home</span>
-            </button>
-            <button id="nav-categories" class="nav-button flex flex-col items-center text-gray-500">
-                <i class="fas fa-th-large text-xl mb-1"></i>
-                <span class="text-xs">Categories</span>
-            </button>
-            <button id="nav-favorites" class="nav-button flex flex-col items-center text-gray-500">
-                <i class="fas fa-heart text-xl mb-1"></i>
-                <span class="text-xs">Favorites</span>
-            </button>
-        </nav>
+<nav class="bg-white border-t border-gray-200 py-3 px-6 flex justify-around fixed bottom-0 w-full max-w-md">
+    <button id="nav-home" class="nav-button flex flex-col items-center text-gray-500 active-tab">
+        <i class="fas fa-home text-xl mb-1"></i>
+        <span class="text-xs">Home</span>
+    </button>
+    <button id="nav-categories" class="nav-button flex flex-col items-center text-gray-500">
+        <i class="fas fa-th-large text-xl mb-1"></i>
+        <span class="text-xs">Categories</span>
+    </button>
+    <button id="nav-favorites" class="nav-button flex flex-col items-center text-gray-500">
+        <i class="fas fa-heart text-xl mb-1"></i>
+        <span class="text-xs">Favorites</span>
+    </button>
+    <button id="nav-cart" class="nav-button flex flex-col items-center text-gray-500">
+        <i class="fas fa-shopping-cart text-xl mb-1"></i>
+        <span class="text-xs">Cart</span>
+        <span id="nav-cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center text-[10px]">0</span>
+    </button>
+</nav>
     </div>
 
     <script>
