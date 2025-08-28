@@ -34,7 +34,8 @@ const elements = {
         home: document.getElementById('home-page'),
         categories: document.getElementById('categories-page'),
         productDetail: document.getElementById('product-detail-page'),
-        favorites: document.getElementById('favorites-page')
+        favorites: document.getElementById('favorites-page'),
+        cart: document.getElementById('cart-page') // MUHIM!
     },
     navButtons: {
         home: document.getElementById('nav-home'),
