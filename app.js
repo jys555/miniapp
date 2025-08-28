@@ -401,32 +401,35 @@ function createProductCard(product) {
     return card;
 }
 
-// Toggle Favorite
+// Toggle Favorite (array bilan ishlaydi, subcollection emas)
+// Demo versiya uchun ham local state yangilanadi
 async function toggleFavorite(productId) {
-    const isFavorite = state.favorites.has(productId);
-    
     try {
-        const userRef = db.collection('users').doc(state.currentUser.id);
-        
+        const userRef = db.collection('users').doc(state.currentUser.id.toString());
+        const userDoc = await userRef.get();
+        let favorites = userDoc.data().favorites || [];
+        const isFavorite = favorites.includes(productId);
+
         if (isFavorite) {
-            // Remove from favorites
-            await userRef.collection('favorites').doc(productId).delete();
+            favorites = favorites.filter(id => id !== productId);
             state.favorites.delete(productId);
         } else {
-            // Add to favorites
-            await userRef.collection('favorites').doc(productId).set({ timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            favorites.push(productId);
             state.favorites.add(productId);
         }
-        
-        // Update UI
+
+        // Firestorega yangilash
+        await userRef.update({ favorites });
+
+        // UI yangilash
         updateFavoriteButtons();
         if (state.currentPage === 'favorites') {
             renderFavoritesPage();
         }
     } catch (error) {
         console.error('Error toggling favorite:', error);
-        // For demo, update local state
-        if (isFavorite) {
+        // DEMO uchun local state yangilash
+        if (state.favorites.has(productId)) {
             state.favorites.delete(productId);
         } else {
             state.favorites.add(productId);
