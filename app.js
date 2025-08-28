@@ -122,24 +122,16 @@ async function loadData() {
             ...doc.data()
         }));
 
-        // Load user favorites
-        const favoritesSnapshot = await db.collection('users')
-            .doc(state.currentUser.id)
-            .collection('favorites')
-            .get();
-        
-        state.favorites = new Set(favoritesSnapshot.docs.map(doc => doc.id));
+        // USERNING FAVORITES VA CART MA'LUMOTLARINI ARRAY SIFATIDA O'QISH
+const userRef = db.collection('users').doc(state.currentUser.id.toString());
+const userDoc = await userRef.get();
+const userData = userDoc.data();
 
-        // Load user cart
-        const cartSnapshot = await db.collection('users')
-            .doc(state.currentUser.id)
-            .collection('cart')
-            .get();
-        
-        state.cart = {};
-        cartSnapshot.forEach(doc => {
-            state.cart[doc.id] = doc.data();
-        });
+state.favorites = new Set(userData.favorites || []);
+state.cart = {};
+(userData.cart || []).forEach(item => {
+    state.cart[item.productId] = item;
+});
 
         // Update UI
         updateCartCount();
