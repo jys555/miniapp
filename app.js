@@ -50,8 +50,23 @@ const elements = {
     cartCount: document.getElementById('nav-cart-count')
 };
 
+// User ma'lumotlarini avtomatik saqlash
+async function ensureUserDocument() {
+    const userRef = db.collection('users').doc(state.currentUser.id.toString());
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+        await userRef.set({
+            first_name: state.currentUser.first_name || '',
+            last_name: state.currentUser.last_name || '',
+            username: state.currentUser.username || '',
+            favorites: [],
+            cart: []
+        });
+    }
+}
+
 // Initialize App
-function initApp() {
+async function initApp() {
     // Simulate Telegram WebApp initialization
     window.Telegram = {
         WebApp: {
@@ -71,20 +86,25 @@ function initApp() {
 
     // Get current user
     state.currentUser = window.Telegram.WebApp.initDataUnsafe.user;
-    
+
+    // USERNI FIRESTOREDA YARATISH YOKI YANGILASH
+    await ensureUserDocument();
+
     // Load data
-    loadData();
-    
+    await loadData();
+
     // Setup event listeners
     setupEventListeners();
-    
+
     // Start carousel
     startCarousel();
-    
+
     // Notify Telegram that app is ready
     window.Telegram.WebApp.ready();
 }
 
+// DOM loaded bo'lganda chaqirish
+document.addEventListener('DOMContentLoaded', () => initApp());
 // Load data from Firebase
 async function loadData() {
     try {
