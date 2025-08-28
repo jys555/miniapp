@@ -1,1 +1,41 @@
-
+.product-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+.carousel-item {
+    transition: transform 0.3s ease-in-out;
+}
+.like-button {
+    transition: transform 0.2s ease;
+}
+.like-button:active {
+    transform: scale(1.2);
+}
+.price-original {
+    text-decoration: line-through;
+    color: #9ca3af;
+}
+.price-discounted {
+    color: #ef4444;
+    font-weight: 600;
+}
+.buy-button {
+    background-color: #10b981;
+    transition: background-color 0.2s ease;
+}
+.buy-button:hover {
+    background-color: #059669;
+}
+.active-tab {
+    color: #3b82f6;
+}
+.discount-badge {
+    background-color: #ef4444;
+    color: white;
+    font-weight: 600;
+    border-radius: 9999px;
+    padding: 2px 8px;
+}
