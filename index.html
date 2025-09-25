@@ -153,9 +153,7 @@
         }
         
         .product-name {
-
-JYS_, [25/09/2025 18:02]
-font-size: 14px;
+            font-size: 14px;
             font-weight: 500;
             margin-bottom: 8px;
             display: -webkit-box;
@@ -319,9 +317,7 @@ font-size: 14px;
         .discount-percentage {
             background: #ef4444;
             color: white;
-
-JYS_, [25/09/2025 18:02]
-padding: 2px 8px;
+            padding: 2px 8px;
             border-radius: 4px;
             font-size: 14px;
             font-weight: 600;
@@ -391,9 +387,10 @@ padding: 2px 8px;
             color: #999;
             font-size: 12px;
             transition: color 0.2s;
+            cursor: pointer;
         }
         
-        .nav-item.active {
+        .nav-item.active-tab {
             color: #2563eb;
         }
         
@@ -422,6 +419,12 @@ padding: 2px 8px;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -441,6 +444,7 @@ padding: 2px 8px;
         
         <main class="main-content">
             <div id="home-page" class="page">
+                <div class="loading" id="home-loading">Loading products and categories...</div>
                 <div class="carousel">
                     <div class="carousel-container" id="carousel">
                         <div class="carousel-slide">Special Offer 1</div>
@@ -457,14 +461,13 @@ padding: 2px 8px;
             </div>
             
             <div id="categories-page" class="page hidden">
+                <div class="loading" id="categories-loading">Loading categories...</div>
                 <h2 class="section-title">All Categories</h2>
                 <div class="categories-grid" id="all-categories-grid"></div>
             </div>
             
             <div id="product-detail-page" class="page hidden">
-
-JYS_, [25/09/2025 18:02]
-<div class="product-detail-container">
+                <div class="product-detail-container">
                     <div class="product-images">
                         <img src="https://placehold.co/400x300" alt="Product" class="product-image-main" id="product-image-main">
                         <div class="image-indicators" id="image-indicators"></div>
@@ -473,7 +476,7 @@ JYS_, [25/09/2025 18:02]
                         <h1 class="product-title" id="product-name">Product Name</h1>
                         <div class="product-prices">
                             <span class="price-discounted" id="product-price-discounted">$0.00</span>
-                            <span class="price-original" id="product-price-original"></span>
+                            <span class="price-original" id="price-original"></span>
                             <span class="discount-percentage" id="product-discount"></span>
                         </div>
                         <p class="product-description" id="product-description">Product description will appear here.</p>
@@ -483,6 +486,7 @@ JYS_, [25/09/2025 18:02]
             </div>
             
             <div id="favorites-page" class="page hidden">
+                <div class="loading" id="favorites-loading">Loading favorites...</div>
                 <h2 class="section-title">My Favorites</h2>
                 <div class="favorites-grid" id="favorites-grid"></div>
             </div>
@@ -498,31 +502,31 @@ JYS_, [25/09/2025 18:02]
         
         <nav class="navigation">
             <div class="nav-items">
-                <a href="#" class="nav-item active-tab" id="nav-home">
+                <div class="nav-item active-tab" id="nav-home">
                     <i class="fas fa-home nav-icon"></i>
                     <span>Home</span>
-                </a>
-                <a href="#" class="nav-item" id="nav-categories">
+                </div>
+                <div class="nav-item" id="nav-categories">
                     <i class="fas fa-th-large nav-icon"></i>
                     <span>Categories</span>
-                </a>
-                <a href="#" class="nav-item" id="nav-favorites">
+                </div>
+                <div class="nav-item" id="nav-favorites">
                     <i class="fas fa-heart nav-icon"></i>
                     <span>Favorites</span>
-                </a>
-                <a href="#" class="nav-item" id="nav-cart">
+                </div>
+                <div class="nav-item" id="nav-cart">
                     <div style="position: relative;">
                         <i class="fas fa-shopping-cart nav-icon"></i>
                         <span class="cart-count" id="nav-cart-count">0</span>
                     </div>
                     <span>Cart</span>
-                </a>
+                </div>
             </div>
         </nav>
     </div>
 
     <script>
-        // Firebase Configuration
+        // Firebase Configuration - O'ZINGIZNIKINI QO'YING!
         const firebaseConfig = {
             apiKey: "AIzaSyBrU8Vt8kZo4PvlG5diZuMeZ3yQxUJy2YQ",
             authDomain: "miniapp-78bb0.firebaseapp.com",
@@ -534,13 +538,20 @@ JYS_, [25/09/2025 18:02]
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
 
         // App State
         const state = {
             currentPage: 'home',
-            currentUser: null,
+            currentUser: {
+                id: Date.now().toString(), // Unique ID for testing
+                first_name: 'Test',
+                last_name: 'User',
+                username: 'testuser'
+            },
             products: [],
             categories: [],
             favorites: new Set(),
@@ -550,11 +561,8 @@ JYS_, [25/09/2025 18:02]
             productImageIndex: 0
         };
 
-JYS_, [25/09/2025 18:02]
-// DOM Elements
+        // DOM Elements
         const elements = {
-            app: document.getElementById('app'),
-            mainContent: document.getElementById('main-content'),
             pages: {
                 home: document.getElementById('home-page'),
                 categories: document.getElementById('categories-page'),
@@ -568,205 +576,202 @@ JYS_, [25/09/2025 18:02]
                 favorites: document.getElementById('nav-favorites'),
                 cart: document.getElementById('nav-cart')
             },
-            productsGrid: document.getElementById('products-grid'),
-            categoriesGrid: document.getElementById('categories-grid'),
-            favoritesGrid: document.getElementById('favorites-grid'),
-            carousel: document.getElementById('carousel'),
-            cartCount: document.getElementById('nav-cart-count')
-        };
-
-        // User ma'lumotlarini avtomatik saqlash
-        async function ensureUserDocument() {
-            const userRef = db.collection('users').doc(state.currentUser.id.toString());
-            const userDoc = await userRef.get();
-            if (!userDoc.exists) {
-                await userRef.set({
-                    first_name: state.currentUser.first_name  '',
-                    last_name: state.currentUser.last_name  '',
-                    username: state.currentUser.username  '',
-                    favorites: [],
-                    cart: []
-                });
+            loading: {
+                home: document.getElementById('home-loading'),
+                categories: document.getElementById('categories-loading'),
+                favorites: document.getElementById('favorites-loading')
             }
-        }
+        };
 
         // Initialize App
         async function initApp() {
-            // Simulate Telegram WebApp initialization
-            window.Telegram = {
-                WebApp: {
-                    initDataUnsafe: {
-                        user: {
-                            id: '123456789',
-                            first_name: 'John',
-                            last_name: 'Doe',
-                            username: 'johndoe'
-                        }
-                    },
-                    ready: function() {
-                        console.log('Telegram WebApp is ready');
-                    }
-                }
-            };
-
-            // Get current user
-            state.currentUser = window.Telegram.WebApp.initDataUnsafe.user;
-
-            // USERNI FIRESTOREDA YARATISH YOKI YANGILASH
-            await ensureUserDocument();
-
-            // Load data
-            await loadData();
-
-            // Setup event listeners
-            setupEventListeners();
-
-            // Start carousel
-            startCarousel();
-
-            // Notify Telegram that app is ready
-            window.Telegram.WebApp.ready();
+            console.log('Initializing app with Firebase...');
+            
+            try {
+                // Create user document if not exists
+                await ensureUserDocument();
+                
+                // Load all data from Firebase
+                await loadData();
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+                // Start carousel
+                startCarousel();
+                
+                console.log('App initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                alert('Failed to load data from Firebase. Please check your connection and configuration.');
+            }
         }
 
-        // Load data from Firebase
+        // Ensure user document exists in Firestore
+        async function ensureUserDocument() {
+            try {
+                const userRef = db.collection('users').doc(state.currentUser.id);
+                const userDoc = await userRef.get();
+                
+                if (!userDoc.exists) {
+                    await userRef.set({
+                        first_name: state.currentUser.first_name,
+                        last_name: state.currentUser.last_name,
+                        username: state.currentUser.username,
+                        favorites: [],
+                        cart: [],
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log('New user document created');
+                } else {
+                    console.log('User document already exists');
+                }
+            } catch (error) {
+                console.error('Error ensuring user document:', error);
+                throw error;
+            }
+        }
+
+        // Load all data from Firebase
         async function loadData() {
             try {
+                console.log('Loading data from Firebase...');
+                
                 // Load products
-                const productsSnapshot = await db.collection('products').get();
+                const productsSnapshot = await db.collection('products')
+                    .orderBy('name')
+                    .get();
+                
                 state.products = productsSnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
+                
+                console.log(`Loaded ${state.products.length} products`);
 
                 // Load categories
-                const categoriesSnapshot = await db.collection('categories').get();
+                const categoriesSnapshot = await db.collection('categories')
+                    .orderBy('name')
+                    .get();
+                
                 state.categories = categoriesSnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
+                
+                console.log(`Loaded ${state.categories.length} categories`);
 
-                // USERNING FAVORITES VA CART MA'LUMOTLARINI ARRAY SIFATIDA O'QISH
-                const userRef = db.collection('users').doc(state.currentUser.id.toString());
-                const userDoc = await userRef.get();
-                const userData = userDoc.data();
-
-                state.favorites = new Set(userData.favorites  []);
-                state.cart = {};
-
-JYS_, [25/09/2025 18:02]
-(userData.cart  []).forEach(item => {
-                    state.cart[item.productId] = item;
-                });
-
-                // Update UI
-                updateCartCount();
+                // Load user favorites
+                await loadUserFavorites();
+                
+                // Hide loading indicators
+                hideAllLoading();
+                
+                // Render all pages
                 renderHomePage();
                 renderCategoriesPage();
                 renderFavoritesPage();
+                
+                console.log('All data loaded successfully');
+                
             } catch (error) {
-                console.error('Error loading data:', error);
-                // Use mock data for demo
-                loadMockData();
+                console.error('Error loading data from Firebase:', error);
+                hideAllLoading();
+                throw error;
             }
         }
 
-        // Mock data for demo
-        function loadMockData() {
-            state.products = [
-                {
-                    id: '1',
-                    name: 'Wireless Headphones',
-                    price: 99.99,
-                    discount: 20,
-                    description: 'High quality wireless headphones with noise cancellation',
-                    imageUrls: ['https://placehold.co/300x200?text=Headphones'],
-                    buyLink: '#'
-                },
-                {
-                    id: '2',
-                    name: 'Smart Watch',
-                    price: 199.99,
-                    discount: 15,
-                    description: 'Feature-rich smartwatch with health monitoring',
-                    imageUrls: ['https://placehold.co/300x200?text=Smart+Watch'],
-                    buyLink: '#'
-                },
-                {
-                    id: '3',
-                    name: 'Bluetooth Speaker',
-                    price: 79.99,
-                    discount: 0,
-                    description: 'Portable Bluetooth speaker with excellent sound quality',
-                    imageUrls: ['https://placehold.co/300x200?text=Speaker'],
-                    buyLink: '#'
-                },
-                {
-                    id: '4',
-                    name: 'Phone Case',
-                    price: 29.99,
-                    discount: 10,
-                    description: 'Durable phone case with stylish design',
-                    imageUrls: ['https://placehold.co/300x200?text=Phone+Case'],
-                    buyLink: '#'
+        // Load user favorites from Firebase
+        async function loadUserFavorites() {
+            try {
+                const userRef = db.collection('users').doc(state.currentUser.id);
+                const userDoc = await userRef.get();
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    state.favorites = new Set(userData.favorites || []);
+                    console.log(`Loaded ${state.favorites.size} favorites`);
                 }
-            ];
+            } catch (error) {
+                console.error('Error loading user favorites:', error);
+            }
+        }
 
-            state.categories = [
-                { id: '1', name: 'Electronics', icon: 'fas fa-laptop' },
-                { id: '2', name: 'Fashion', icon: 'fas fa-tshirt' },
-                { id: '3', name: 'Home', icon: 'fas fa-home' },
-                { id: '4', name: 'Beauty', icon: 'fas fa-spa' },
-                { id: '5', name: 'Sports', icon: 'fas fa-football-ball' },
-                { id: '6', name: 'Books', icon: 'fas fa-book' }
-            ];
-
-            renderHomePage();
-            renderCategoriesPage();
-            renderFavoritesPage();
+        // Hide all loading indicators
+        function hideAllLoading() {
+            Object.values(elements.loading).forEach(loadingEl => {
+                if (loadingEl) {
+                    loadingEl.style.display = 'none';
+                }
+            });
         }
 
         // Setup Event Listeners
         function setupEventListeners() {
+            console.log('Setting up event listeners...');
+            
             // Navigation
-            elements.navButtons.home.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchPage('home');
-            });
-            elements.navButtons.categories.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchPage('categories');
-            });
-            elements.navButtons.favorites.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchPage('favorites');
-            });
-            elements.navButtons.cart.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchPage('cart');
-            });
+            if (elements.navButtons.home) {
+                elements.navButtons.home.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchPage('home');
+                });
+            }
+            
+            if (elements.navButtons.categories) {
+                elements.navButtons.categories.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchPage('categories');
+                });
+            }
+            
+            if (elements.navButtons.favorites) {
+                elements.navButtons.favorites.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchPage('favorites');
+                });
+            }
+            
+            if (elements.navButtons.cart) {
+                elements.navButtons.cart.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchPage('cart');
+                });
+            }
 
-            // Search and Cart buttons
-            document.getElementById('search-button').addEventListener('click', () => {
-                alert('Search functionality would be implemented here');
-            });
+            // Search button
+            const searchButton = document.getElementById('search-button');
+            if (searchButton) {
+                searchButton.addEventListener('click', () => {
+                    const searchInput = document.querySelector('.search-bar input');
+                    if (searchInput && searchInput.value.trim()) {
+                        alert(`Searching for: ${searchInput.value.trim()}`);
+                    } else {
+                        alert('Please enter a search term');
+                    }
+                });
+            }
         }
 
         // Switch between pages
         function switchPage(page) {
+            console.log('Switching to page:', page);
+            
             // Hide all pages
             Object.values(elements.pages).forEach(pageEl => {
-                pageEl.classList.add('hidden');
+                if (pageEl) {
+                    pageEl.classList.add('hidden');
+                }
             });
 
             // Remove active class from all nav buttons
             Object.values(elements.navButtons).forEach(button => {
-                button.classList.remove('active-tab');
+                if (button) {
+                    button.classList.remove('active-tab');
+                }
             });
 
-            //
-
-JYS_, [25/09/2025 18:02]
-Show selected page
+            // Show selected page
             if (elements.pages[page]) {
                 elements.pages[page].classList.remove('hidden');
             }
@@ -781,64 +786,67 @@ Show selected page
             if (page === 'productDetail' && state.currentProduct) {
                 renderProductDetailPage();
             }
+            
+            // Reload favorites when switching to favorites page
+            if (page === 'favorites') {
+                renderFavoritesPage();
+            }
         }
 
         // Render Home Page
         function renderHomePage() {
-            elements.productsGrid.innerHTML = '';
+            console.log('Rendering home page...');
             
+            const productsGrid = document.getElementById('products-grid');
+            const categoriesGrid = document.getElementById('categories-grid');
+            
+            if (!productsGrid || !categoriesGrid) {
+                console.error('Required elements not found for home page');
+                return;
+            }
+            
+            // Render products
+            productsGrid.innerHTML = '';
             state.products.slice(0, 6).forEach(product => {
                 const productCard = createProductCard(product);
-                elements.productsGrid.appendChild(productCard);
+                productsGrid.appendChild(productCard);
             });
             
-            // Render categories for home page
-            const homeCategoriesGrid = document.getElementById('categories-grid');
-            homeCategoriesGrid.innerHTML = '';
-            
+            // Render categories
+            categoriesGrid.innerHTML = '';
             state.categories.slice(0, 6).forEach(category => {
-                const categoryCard = document.createElement('div');
-                categoryCard.className = 'category-card';
-                categoryCard.innerHTML = `
-                    <div class="category-icon">
-                        <i class="${category.icon}"></i>
-                    </div>
-                    <div class="category-name">${category.name}</div>
-                `;
-                
-                categoryCard.addEventListener('click', () => {
-                    alert(`Filtering by category: ${category.name}`);
-                });
-                
-                homeCategoriesGrid.appendChild(categoryCard);
+                const categoryCard = createCategoryCard(category);
+                categoriesGrid.appendChild(categoryCard);
             });
         }
 
         // Render Categories Page
         function renderCategoriesPage() {
-            const allCategoriesGrid = document.getElementById('all-categories-grid');
-            allCategoriesGrid.innerHTML = '';
+            console.log('Rendering categories page...');
             
+            const allCategoriesGrid = document.getElementById('all-categories-grid');
+            const loadingElement = elements.loading.categories;
+            
+            if (!allCategoriesGrid) {
+                console.error('Categories grid element not found');
+                return;
+            }
+            
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
+            
+            allCategoriesGrid.innerHTML = '';
             state.categories.forEach(category => {
-                const categoryCard = document.createElement('div');
-                categoryCard.className = 'category-card';
-                categoryCard.innerHTML = `
-                    <div class="category-icon">
-                        <i class="${category.icon}"></i>
-                    </div>
-                    <div class="category-name">${category.name}</div>
-                `;
-                
-                categoryCard.addEventListener('click', () => {
-                    alert(`Filtering by category: ${category.name}`);
-                });
-                
+                const categoryCard = createCategoryCard(category);
                 allCategoriesGrid.appendChild(categoryCard);
             });
         }
 
         // Render Product Detail Page
         function renderProductDetailPage() {
+            console.log('Rendering product detail page...');
+            
             const product = state.currentProduct;
             if (!product) return;
 
@@ -847,48 +855,84 @@ Show selected page
 
             // Update product image
             const productImageMain = document.getElementById('product-image-main');
-            productImageMain.src = product.imageUrls[0];
+            if (productImageMain) {
+                productImageMain.src = product.imageUrls?.[0] || 'https://placehold.co/400x300';
+            }
 
             // Update image indicators
             const indicators = document.getElementById('image-indicators');
-            indicators.innerHTML = '';
-            product.imageUrls.forEach((_, index) => {
-                const indicator = document.createElement('div');
-                indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
-                indicators.appendChild(indicator);
-            });
+            if (indicators) {
+                indicators.innerHTML = '';
+                const imageUrls = product.imageUrls || [];
+                imageUrls.forEach((_, index) => {
+                    const indicator = document.createElement('div');
+                    indicator.className = `indicator ${index === 0 ? 'active' : ''}`;
+                    indicators.appendChild(indicator);
+                });
+            }
 
-JYS_, [25/09/2025 18:02]
-// Update product info
-            document.getElementById('product-name').textContent = product.name;
+            // Update product info
+            const productName = document.getElementById('product-name');
+            if (productName) productName.textContent = product.name || 'Unnamed Product';
             
-            const discountedPrice = product.price * (1 - (product.discount / 100));
-            document.getElementById('product-price-discounted').textContent = `$${discountedPrice.toFixed(2)}`;
+            const price = product.price || 0;
+            const discount = product.discount || 0;
+            const discountedPrice = price * (1 - (discount / 100));
             
-            if (product.discount > 0) {
-                document.getElementById('product-price-original').textContent = `$${product.price.toFixed(2)}`;
-                document.getElementById('product-discount').textContent = `-${product.discount}%`;
+            const priceDiscounted = document.getElementById('product-price-discounted');
+            if (priceDiscounted) priceDiscounted.textContent = `$${discountedPrice.toFixed(2)}`;
+            
+            const priceOriginal = document.getElementById('price-original');
+            const productDiscount = document.getElementById('product-discount');
+            
+            if (discount > 0) {
+                if (priceOriginal) priceOriginal.textContent = `$${price.toFixed(2)}`;
+                if (productDiscount) productDiscount.textContent = `-${discount}%`;
             } else {
-                document.getElementById('product-price-original').textContent = '';
-                document.getElementById('product-discount').textContent = '';
+                if (priceOriginal) priceOriginal.textContent = '';
+                if (productDiscount) productDiscount.textContent = '';
             }
             
-            document.getElementById('product-description').textContent = product.description;
+            const productDescription = document.getElementById('product-description');
+            if (productDescription) productDescription.textContent = product.description || 'No description available';
 
             // Setup buy button
-            document.getElementById('buy-button').onclick = () => {
-                window.open(product.buyLink, '_blank');
-            };
+            const buyButton = document.getElementById('buy-button');
+            if (buyButton) {
+                buyButton.onclick = () => {
+                    if (product.buyLink) {
+                        window.open(product.buyLink, '_blank');
+                    } else {
+                        alert('Buy link not available for this product');
+                    }
+                };
+            }
         }
 
         // Render Favorites Page
         function renderFavoritesPage() {
-            elements.favoritesGrid.innerHTML = '';
+            console.log('Rendering favorites page...');
             
-            const favoriteProducts = state.products.filter(product => state.favorites.has(product.id));
+            const favoritesGrid = document.getElementById('favorites-grid');
+            const loadingElement = elements.loading.favorites;
+            
+            if (!favoritesGrid) {
+                console.error('Favorites grid element not found');
+                return;
+            }
+            
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
+            
+            favoritesGrid.innerHTML = '';
+            
+            const favoriteProducts = state.products.filter(product => 
+                state.favorites.has(product.id)
+            );
             
             if (favoriteProducts.length === 0) {
-                elements.favoritesGrid.innerHTML = `
+                favoritesGrid.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-heart"></i>
                         <h3>No Favorites Yet</h3>
@@ -900,7 +944,7 @@ JYS_, [25/09/2025 18:02]
             
             favoriteProducts.forEach(product => {
                 const productCard = createProductCard(product);
-                elements.favoritesGrid.appendChild(productCard);
+                favoritesGrid.appendChild(productCard);
             });
         }
 
@@ -909,26 +953,31 @@ JYS_, [25/09/2025 18:02]
             const card = document.createElement('div');
             card.className = 'product-card';
             
-            const discountedPrice = product.price * (1 - (product.discount / 100));
+            const price = product.price || 0;
+            const discount = product.discount || 0;
+            const discountedPrice = price * (1 - (discount / 100));
             
             card.innerHTML = `
                 <div style="position: relative;">
-                    <img src="${product.imageUrls[0]}" alt="${product.name}" class="product-image">
+                    <img src="${product.imageUrls?.[0] || 'https://placehold.co/300x200'}" 
+                         alt="${product.name || 'Product'}" 
+                         class="product-image" 
+                         onerror="this.src='https://placehold.co/300x200'">
                     <button class="like-button" data-product-id="${product.id}">
                         <i class="${state.favorites.has(product.id) ? 'fas' : 'far'} fa-heart"></i>
                     </button>
-                    ${product.discount > 0 ? `
+                    ${discount > 0 ? `
                         <div class="discount-badge">
-                            -${product.discount}%
+                            -${discount}%
                         </div>
                     ` : ''}
                 </div>
                 <div class="product-info">
-                    <h3 class="product-name">${product.name}</h3>
+                    <h3 class="product-name">${product.name || 'Unnamed Product'}</h3>
                     <div class="product-price">
                         <div>
                             <span class="price-current">$${discountedPrice.toFixed(2)}</span>
-                            ${product.discount > 0 ? `<span class="price-original">$${product.price.toFixed(2)}</span>` : ''}
+                            ${discount > 0 ? `<span class="price-original">$${price.toFixed(2)}</span>` : ''}
                         </div>
                     </div>
                 </div>
@@ -936,10 +985,12 @@ JYS_, [25/09/2025 18:02]
             
             // Add event listeners
             const likeButton = card.querySelector('.like-button');
-            likeButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleFavorite(product.id);
-            });
+            if (likeButton) {
+                likeButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFavorite(product.id);
+                });
+            }
             
             card.addEventListener('click', () => {
                 state.currentProduct = product;
@@ -949,43 +1000,60 @@ JYS_, [25/09/2025 18:02]
             return card;
         }
 
-JYS_, [25/09/2025 18:02]
-// Toggle Favorite (array bilan ishlaydi, subcollection emas)
-        // Demo versiya uchun ham local state yangilanadi
+        // Create Category Card
+        function createCategoryCard(category) {
+            const card = document.createElement('div');
+            card.className = 'category-card';
+            card.innerHTML = `
+                <div class="category-icon">
+                    <i class="${category.icon || 'fas fa-folder'}"></i>
+                </div>
+                <div class="category-name">${category.name || 'Unnamed'}</div>
+            `;
+            
+            card.addEventListener('click', () => {
+                alert(`Filtering by category: ${category.name || 'Unnamed'}`);
+            });
+            
+            return card;
+        }
+
+        // Toggle Favorite
         async function toggleFavorite(productId) {
+            console.log('Toggling favorite for product:', productId);
+            
             try {
-                const userRef = db.collection('users').doc(state.currentUser.id.toString());
-                const userDoc = await userRef.get();
-                let favorites = userDoc.data().favorites  [];
-                const isFavorite = favorites.includes(productId);
-
-                if (isFavorite) {
-                    favorites = favorites.filter(id => id !== productId);
-                    state.favorites.delete(productId);
-                } else {
-                    favorites.push(productId);
-                    state.favorites.add(productId);
-                }
-
-                // Firestorega yangilash
-                await userRef.update({ favorites });
-
-                // UI yangilash
-                updateFavoriteButtons();
-                if (state.currentPage === 'favorites') {
-                    renderFavoritesPage();
-                }
-            } catch (error) {
-                console.error('Error toggling favorite:', error);
-                // DEMO uchun local state yangilash
+                // Toggle in local state first for immediate feedback
                 if (state.favorites.has(productId)) {
                     state.favorites.delete(productId);
                 } else {
                     state.favorites.add(productId);
                 }
+
+                // Update user in Firebase
+                const userRef = db.collection('users').doc(state.currentUser.id);
+                const favoritesArray = Array.from(state.favorites);
+                await userRef.update({ favorites: favoritesArray });
+                
+                console.log('Favorites updated in Firebase');
+                
+                // Update UI immediately
                 updateFavoriteButtons();
+                
+                // If we're on favorites page, re-render it
                 if (state.currentPage === 'favorites') {
                     renderFavoritesPage();
+                }
+                
+            } catch (error) {
+                console.error('Error toggling favorite:', error);
+                alert('Failed to update favorites. Please try again.');
+                
+                // Revert local state change on error
+                if (state.favorites.has(productId)) {
+                    state.favorites.delete(productId);
+                } else {
+                    state.favorites.add(productId);
                 }
             }
         }
@@ -996,30 +1064,42 @@ JYS_, [25/09/2025 18:02]
                 const productId = button.getAttribute('data-product-id');
                 const icon = button.querySelector('i');
                 
-                if (state.favorites.has(productId)) {
-                    icon.className = 'fas fa-heart';
-                } else {
-                    icon.className = 'far fa-heart';
+                if (icon) {
+                    if (state.favorites.has(productId)) {
+                        icon.className = 'fas fa-heart';
+                    } else {
+                        icon.className = 'far fa-heart';
+                    }
                 }
             });
         }
 
         // Update Cart Count
         function updateCartCount() {
-            const count = Object.values(state.cart).reduce((sum, item) => sum + item.count, 0);
-            elements.cartCount.textContent = count;
+            const count = Object.values(state.cart).reduce((sum, item) => sum + (item.count || 0), 0);
+            const cartCountElement = document.getElementById('nav-cart-count');
+            if (cartCountElement) {
+                cartCountElement.textContent = count;
+            }
         }
 
         // Start Carousel
         function startCarousel() {
+            const carousel = document.getElementById('carousel');
+            if (!carousel) return;
+            
             setInterval(() => {
                 state.carouselIndex = (state.carouselIndex + 1) % 3;
-                elements.carousel.style.transform = `translateX(-${state.carouselIndex * 100}%)`;
+                carousel.style.transform = `translateX(-${state.carouselIndex * 100}%)`;
             }, 5000);
         }
 
         // Initialize the app when the DOM is loaded
-        document.addEventListener('DOMContentLoaded', initApp);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
     </script>
 </body>
 </html>
