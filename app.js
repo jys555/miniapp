@@ -1,3 +1,5 @@
+      // the clone of main 
+       
        // Firebase Configuration - O'ZINGIZNIKINI QO'YING!
         const firebaseConfig = {
             apiKey: "AIzaSyBrU8Vt8kZo4PvlG5diZuMeZ3yQxUJy2YQ",
