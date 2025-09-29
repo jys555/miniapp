@@ -20,12 +20,8 @@
         // App State
         const state = {
             currentPage: 'home',
-            currentUser: {
-                id: Date.now().toString(), // Unique ID for testing
-                first_name: 'Test',
-                last_name: 'User',
-                username: 'testuser'
-            },
+            currentUser: null, // will be set after server verifies Telegram initData
+
             products: [],
             categories: [],
             favorites: new Set(),
@@ -58,28 +54,29 @@
         };
 
         // Initialize App
-        async function initApp() {
-            console.log('Initializing app with Firebase...');
-            
-            try {
-                // Create user document if not exists
-                await ensureUserDocument();
-                
-                // Load all data from Firebase
-                await loadData();
-                
-                // Setup event listeners
-                setupEventListeners();
-                
-                // Start carousel
-                startCarousel();
-                
-                console.log('App initialized successfully');
-            } catch (error) {
-                console.error('Failed to initialize app:', error);
-                alert('Failed to load data from Firebase. Please check your connection and configuration.');
-            }
-        }
+            async function initApp() {
+    console.log('Initializing app...');
+
+    try {
+        // Load public data (products/categories) so UI ko'rinadi, lekin user-specific ishlar auth'dan keyin bo'ladi
+        await loadData();
+
+        // Setup event listeners and carousel
+        setupEventListeners();
+        startCarousel();
+
+        // Try to authenticate via Telegram WebApp initData (frontend will call server)
+        await sendInitDataToServer(); // <-- yangi: serverga initData yuboradi va handleVerifiedUser chaqiradi
+
+        console.log('App initialized');
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        alert('Failed to load data. Please check your connection.');
+    }
+}
+  
+
+
 
         // Ensure user document exists in Firestore
         async function ensureUserDocument() {
