@@ -75,22 +75,22 @@ const elements = {
 async function initApp() {
     console.log('Initializing app with Firebase...');
     
-    // Check if Telegram WebApp is available
-    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-        const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-        
-        if (telegramUser) {
-            // Set Telegram ID in auth modal
-            if (elements.telegramId) {
-                elements.telegramId.textContent = telegramUser.id;
-            }
+    // Check if token exists in localStorage
+    const token = localStorage.getItem('authToken');
+    
+    if (token) {
+        // Token exists, try to get user data from server
+        try {
+            const response = await fetch('/api/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             
-            // Check if user exists in Firestore
-            const userDoc = await db.collection('users').doc(telegramUser.id.toString()).get();
-            if (userDoc.exists) {
-                // User exists, load profile
-                state.currentUser = { uid: telegramUser.id.toString() };
-                await loadUserProfile();
+            if (response.ok) {
+                const userData = await response.json();
+                state.currentUser = { uid: userData.uid, profile: userData };
+                state.userRole = userData.role || 'user';
                 
                 // Hide auth modal and show app content
                 elements.authModal.classList.add('hidden');
@@ -104,13 +104,64 @@ async function initApp() {
                 // Start carousel
                 startCarousel();
                 
-                console.log('App initialized successfully');
+                console.log('App initialized successfully with existing token');
+                return;
             } else {
-                // User doesn't exist, show auth modal
+                // Token invalid, remove it
+                localStorage.removeItem('authToken');
+            }
+        } catch (error) {
+            console.error('Error validating token:', error);
+            localStorage.removeItem('authToken');
+        }
+    }
+    
+    // Check if Telegram WebApp is available
+    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
+        const initData = window.Telegram.WebApp.initData;
+        
+        if (initData) {
+            try {
+                // Send initData to server for authentication
+                const response = await fetch('/api/auth/telegram', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ initData })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    state.currentUser = { uid: result.user.id.toString(), profile: result.user };
+                    state.userRole = result.user.role || 'user';
+                    
+                    // Save token to localStorage
+                    localStorage.setItem('authToken', result.token);
+                    
+                    // Hide auth modal and show app content
+                    elements.authModal.classList.add('hidden');
+                    
+                    // Load all data from Firebase
+                    await loadData();
+                    
+                    // Setup event listeners
+                    setupEventListeners();
+                    
+                    // Start carousel
+                    startCarousel();
+                    
+                    console.log('App initialized successfully with new token');
+                } else {
+                    // Authentication failed, show auth modal
+                    elements.authModal.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error during authentication:', error);
                 elements.authModal.classList.remove('hidden');
             }
         } else {
-            // No Telegram user data, show auth modal
+            // No Telegram initData, show auth modal
             elements.authModal.classList.remove('hidden');
         }
     } else {
@@ -119,53 +170,12 @@ async function initApp() {
     }
 }
 
-// Load user profile from Firestore
+// Load user profile from Firestore (or from server if needed)
 async function loadUserProfile() {
     try {
-        const userDoc = await db.collection('users').doc(state.currentUser.uid).get();
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            state.currentUser.profile = userData;
-            state.userRole = userData.role || 'user';
-            
-            // Update profile page if loaded
-            if (elements.profile.name) {
-                elements.profile.name.textContent = userData.name || 'Unknown User';
-                elements.profile.phone.textContent = userData.phone || 'Not provided';
-                elements.profile.nameInput.value = userData.name || '';
-                elements.profile.phoneInput.value = userData.phone || '';
-            }
-            
-            // Show/hide admin nav if user is admin
-            if (state.userRole === 'admin') {
-                // Add admin nav item if not exists
-                const adminNavItem = document.createElement('div');
-                adminNavItem.className = 'nav-item';
-                adminNavItem.id = 'nav-admin';
-                adminNavItem.innerHTML = `
-                    <i class="fas fa-cog nav-icon"></i>
-                    <span>Admin</span>
-                `;
-                elements.navButtons.cart.parentNode.insertBefore(adminNavItem, elements.navButtons.cart.nextSibling);
-                
-                // Add event listener for admin nav
-                document.getElementById('nav-admin').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    switchPage('admin');
-                });
-            }
-        } else {
-            // Create user document if not exists
-            await db.collection('users').doc(state.currentUser.uid).set({
-                name: '',
-                phone: '',
-                role: 'user',
-                favorites: [],
-                cart: [],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            state.userRole = 'user';
-        }
+        // In this new approach, user data comes with token validation
+        // So we don't need to load from Firestore separately
+        // Just use state.currentUser.profile which is already set
     } catch (error) {
         console.error('Error loading user profile:', error);
     }
@@ -184,48 +194,54 @@ elements.authForm.addEventListener('submit', async (e) => {
     }
     
     try {
-        // Get Telegram user data
-        let telegramUser = null;
+        // Get Telegram initData
+        let initData = null;
         if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-            telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+            initData = window.Telegram.WebApp.initData;
         }
         
-        if (!telegramUser) {
+        if (!initData) {
             alert('Telegram user data not available');
             return;
         }
         
-        // Create user document in Firestore with Telegram ID as document ID
-        await db.collection('users').doc(telegramUser.id.toString()).set({
-            telegramId: telegramUser.id,
-            firstName: telegramUser.first_name || '',
-            lastName: telegramUser.last_name || '',
-            username: telegramUser.username || '',
-            name: name,
-            phone: phone,
-            role: 'user', // Default role
-            favorites: [],
-            cart: [],
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        // Send both initData and user details to server
+        const response = await fetch('/api/auth/telegram', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                initData,
+                name,
+                phone
+            })
         });
         
-        // Set current user
-        state.currentUser = { uid: telegramUser.id.toString() };
-        state.userRole = 'user';
-        
-        // Hide auth modal and show app content
-        elements.authModal.classList.add('hidden');
-        
-        // Load all data from Firebase
-        await loadData();
-        
-        // Setup event listeners
-        setupEventListeners();
-        
-        // Start carousel
-        startCarousel();
-        
-        console.log('User authenticated and profile created');
+        if (response.ok) {
+            const result = await response.json();
+            state.currentUser = { uid: result.user.id.toString(), profile: result.user };
+            state.userRole = result.user.role || 'user';
+            
+            // Save token to localStorage
+            localStorage.setItem('authToken', result.token);
+            
+            // Hide auth modal and show app content
+            elements.authModal.classList.add('hidden');
+            
+            // Load all data from Firebase
+            await loadData();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Start carousel
+            startCarousel();
+            
+            console.log('User authenticated and profile created');
+        } else {
+            alert('Authentication failed. Please try again.');
+        }
     } catch (error) {
         console.error('Error creating user:', error);
         alert('Error creating user. Please try again.');
@@ -237,6 +253,7 @@ elements.logoutLink.addEventListener('click', (e) => {
     e.preventDefault();
     elements.authModal.classList.remove('hidden');
     state.currentUser = null;
+    localStorage.removeItem('authToken'); // Remove token on logout
 });
 
 // Load all data from Firebase
@@ -268,7 +285,7 @@ async function loadData() {
         
         console.log(`Loaded ${state.categories.length} categories`);
 
-        // Load user favorites
+        // Load user favorites (from Firestore using user ID)
         await loadUserFavorites();
         
         // Hide loading indicators
@@ -292,6 +309,7 @@ async function loadData() {
 // Load user favorites from Firebase
 async function loadUserFavorites() {
     try {
+        // This remains the same since we use user ID to fetch from Firestore
         const userRef = db.collection('users').doc(state.currentUser.uid);
         const userDoc = await userRef.get();
         
@@ -773,7 +791,7 @@ async function toggleFavorite(productId) {
             state.favorites.add(productId);
         }
 
-        // Update user in Firebase
+        // Update user in Firebase (using user ID)
         const userRef = db.collection('users').doc(state.currentUser.uid);
         const favoritesArray = Array.from(state.favorites);
         await userRef.update({ favorites: favoritesArray });
