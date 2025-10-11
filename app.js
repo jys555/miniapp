@@ -1,10 +1,3 @@
-// Initialize App
-async function initApp() {
-    console.log('Telegram WebApp Object:', window.Telegram?.WebApp);
-    console.log('initData:', window.Telegram?.WebApp?.initData);
-
-    // Qolgan kod...
-}
 // Firebase Configuration - O'ZINGIZNIKINI QO'YING!
 const firebaseConfig = {
     apiKey: "AIzaSyBrU8Vt8kZo4PvlG5diZuMeZ3yQxUJy2YQ",
@@ -79,7 +72,12 @@ const elements = {
 };
 
 // Initialize App
+
 async function initApp() {
+      console.log('Telegram WebApp Object:', window.Telegram?.WebApp);
+    console.log('initData:', window.Telegram?.WebApp?.initData);
+
+    // Qolgan kod...
     console.log('Initializing app with Firebase...');
     
     // Check if token exists in localStorage
