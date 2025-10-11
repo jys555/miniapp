@@ -72,17 +72,12 @@ const elements = {
 };
 
 // Initialize App
-
 async function initApp() {
-      console.log('Telegram WebApp Object:', window.Telegram?.WebApp);
-    console.log('initData:', window.Telegram?.WebApp?.initData);
-
-    // Qolgan kod...
     console.log('Initializing app with Firebase...');
-    
+
     // Check if token exists in localStorage
     const token = localStorage.getItem('authToken');
-    
+
     if (token) {
         // Token exists, try to get user data from server
         try {
@@ -91,24 +86,24 @@ async function initApp() {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             if (response.ok) {
                 const userData = await response.json();
                 state.currentUser = { uid: userData.uid, profile: userData };
                 state.userRole = userData.role || 'user';
-                
+
                 // Hide auth modal and show app content
                 elements.authModal.classList.add('hidden');
-                
+
                 // Load all data from Firebase
                 await loadData();
-                
+
                 // Setup event listeners
                 setupEventListeners();
-                
+
                 // Start carousel
                 startCarousel();
-                
+
                 console.log('App initialized successfully with existing token');
                 return;
             } else {
@@ -120,57 +115,61 @@ async function initApp() {
             localStorage.removeItem('authToken');
         }
     }
-    
-    // Check if Telegram WebApp is available
-    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-        const initData = window.Telegram.WebApp.initData;
-        
-        if (initData) {
-            try {
-                // Send initData to server for authentication
+
+    // Yangi: @telegram-apps/sdk dan foydalanish
+    try {
+        // Agar Telegram Web App mavjud bo'lsa
+        if (typeof window.TelegramApps !== 'undefined') {
+            const { initDataRaw, initData } = window.TelegramApps.retrieveLaunchParams();
+
+            if (initDataRaw) {
+                console.log('Telegram user:', initData?.user);
+
+                // Serverga yuborish
                 const response = await fetch('https://us-central1-miniapp-78bb0.cloudfunctions.net/authTelegram', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ initData })
+                    body: JSON.stringify({ initData: initDataRaw }) // initDataRaw ni yuborish
                 });
-                
+
                 if (response.ok) {
                     const result = await response.json();
                     state.currentUser = { uid: result.user.id.toString(), profile: result.user };
                     state.userRole = result.user.role || 'user';
-                    
+
                     // Save token to localStorage
                     localStorage.setItem('authToken', result.token);
-                    
+
                     // Hide auth modal and show app content
                     elements.authModal.classList.add('hidden');
-                    
+
                     // Load all data from Firebase
                     await loadData();
-                    
+
                     // Setup event listeners
                     setupEventListeners();
-                    
+
                     // Start carousel
                     startCarousel();
-                    
+
                     console.log('App initialized successfully with new token');
                 } else {
                     // Authentication failed, show auth modal
                     elements.authModal.classList.remove('hidden');
                 }
-            } catch (error) {
-                console.error('Error during authentication:', error);
+            } else {
+                // No Telegram initData, show auth modal
                 elements.authModal.classList.remove('hidden');
             }
         } else {
-            // No Telegram initData, show auth modal
+            // Telegram WebApp not available, show auth modal
             elements.authModal.classList.remove('hidden');
         }
-    } else {
-        // Telegram WebApp not available, show auth modal
+    } catch (error) {
+        console.error('Error retrieving launch params:', error);
+        // Fallback to old method or show auth modal
         elements.authModal.classList.remove('hidden');
     }
 }
@@ -189,60 +188,61 @@ async function loadUserProfile() {
 // Handle form submission for authentication
 elements.authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const name = elements.nameInput.value.trim();
     const phone = elements.phoneInput.value.trim();
-    
+
     if (!name || !phone) {
         alert('Please fill in all fields');
         return;
     }
-    
+
     try {
-        // Get Telegram initData
-        let initData = null;
-        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-            initData = window.Telegram.WebApp.initData;
+        // Yangi: @telegram-apps/sdk dan foydalanish
+        let initDataRaw = null;
+        if (typeof window.TelegramApps !== 'undefined') {
+            const { initDataRaw: raw } = window.TelegramApps.retrieveLaunchParams();
+            initDataRaw = raw;
         }
-        
-        if (!initData) {
+
+        if (!initDataRaw) {
             alert('Telegram user data not available');
             return;
         }
-        
+
         // Send both initData and user details to server
         const response = await fetch('https://us-central1-miniapp-78bb0.cloudfunctions.net/authTelegram', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
-                initData,
+            body: JSON.stringify({
+                initData: initDataRaw, // initDataRaw ni yuborish
                 name,
                 phone
             })
         });
-        
+
         if (response.ok) {
             const result = await response.json();
             state.currentUser = { uid: result.user.id.toString(), profile: result.user };
             state.userRole = result.user.role || 'user';
-            
+
             // Save token to localStorage
             localStorage.setItem('authToken', result.token);
-            
+
             // Hide auth modal and show app content
             elements.authModal.classList.add('hidden');
-            
+
             // Load all data from Firebase
             await loadData();
-            
+
             // Setup event listeners
             setupEventListeners();
-            
+
             // Start carousel
             startCarousel();
-            
+
             console.log('User authenticated and profile created');
         } else {
             alert('Authentication failed. Please try again.');
@@ -265,45 +265,45 @@ elements.logoutLink.addEventListener('click', (e) => {
 async function loadData() {
     try {
         console.log('Loading data from Firebase...');
-        
+
         // Load products
         const productsSnapshot = await db.collection('products')
             .orderBy('name')
             .get();
-        
+
         state.products = productsSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-        
+
         console.log(`Loaded ${state.products.length} products`);
 
         // Load categories
         const categoriesSnapshot = await db.collection('categories')
             .orderBy('name')
             .get();
-        
+
         state.categories = categoriesSnapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-        
+
         console.log(`Loaded ${state.categories.length} categories`);
 
         // Load user favorites (from Firestore using user ID)
         await loadUserFavorites();
-        
+
         // Hide loading indicators
         hideAllLoading();
-        
+
         // Render all pages
         renderHomePage();
         renderCategoriesPage();
         renderFavoritesPage();
         renderAdminPage();
-        
+
         console.log('All data loaded successfully');
-        
+
     } catch (error) {
         console.error('Error loading data from Firebase:', error);
         hideAllLoading();
@@ -317,7 +317,7 @@ async function loadUserFavorites() {
         // This remains the same since we use user ID to fetch from Firestore
         const userRef = db.collection('users').doc(state.currentUser.uid);
         const userDoc = await userRef.get();
-        
+
         if (userDoc.exists) {
             const userData = userDoc.data();
             state.favorites = new Set(userData.favorites || []);
@@ -340,7 +340,7 @@ function hideAllLoading() {
 // Setup Event Listeners
 function setupEventListeners() {
     console.log('Setting up event listeners...');
-    
+
     // Navigation
     if (elements.navButtons.home) {
         elements.navButtons.home.addEventListener('click', (e) => {
@@ -348,28 +348,28 @@ function setupEventListeners() {
             switchPage('home');
         });
     }
-    
+
     if (elements.navButtons.categories) {
         elements.navButtons.categories.addEventListener('click', (e) => {
             e.preventDefault();
             switchPage('categories');
         });
     }
-    
+
     if (elements.navButtons.favorites) {
         elements.navButtons.favorites.addEventListener('click', (e) => {
             e.preventDefault();
             switchPage('favorites');
         });
     }
-    
+
     if (elements.navButtons.cart) {
         elements.navButtons.cart.addEventListener('click', (e) => {
             e.preventDefault();
             switchPage('cart');
         });
     }
-    
+
     if (elements.navButtons.profile) {
         elements.navButtons.profile.addEventListener('click', (e) => {
             e.preventDefault();
@@ -389,20 +389,20 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Profile form submission
     if (elements.profile.form) {
         elements.profile.form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const name = elements.profile.nameInput.value.trim();
             const phone = elements.profile.phoneInput.value.trim();
-            
+
             if (!name || !phone) {
                 alert('Please fill in all fields');
                 return;
             }
-            
+
             try {
                 // Update user profile in Firestore
                 const userRef = db.collection('users').doc(state.currentUser.uid);
@@ -410,14 +410,14 @@ function setupEventListeners() {
                     name: name,
                     phone: phone
                 });
-                
+
                 // Update current state
                 state.currentUser.profile = { name, phone };
-                
+
                 // Update UI
                 elements.profile.name.textContent = name;
                 elements.profile.phone.textContent = phone;
-                
+
                 alert('Profile updated successfully!');
             } catch (error) {
                 console.error('Error updating profile:', error);
@@ -425,7 +425,7 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Admin event listeners
     if (elements.admin.addProductBtn) {
         elements.admin.addProductBtn.addEventListener('click', () => {
@@ -438,13 +438,13 @@ function setupEventListeners() {
 // Switch between pages
 function switchPage(page) {
     console.log('Switching to page:', page);
-    
+
     // Check if user is admin and trying to access admin page
     if (page === 'admin' && state.userRole !== 'admin') {
         alert('Access denied! Admin privileges required.');
         return;
     }
-    
+
     // Hide all pages
     Object.values(elements.pages).forEach(pageEl => {
         if (pageEl) {
@@ -474,17 +474,17 @@ function switchPage(page) {
     if (page === 'productDetail' && state.currentProduct) {
         renderProductDetailPage();
     }
-    
+
     // Reload favorites when switching to favorites page
     if (page === 'favorites') {
         renderFavoritesPage();
     }
-    
+
     // Reload admin page when switching to admin page
     if (page === 'admin') {
         renderAdminPage();
     }
-    
+
     // Reload profile when switching to profile page
     if (page === 'profile') {
         renderProfilePage();
@@ -494,22 +494,22 @@ function switchPage(page) {
 // Render Home Page
 function renderHomePage() {
     console.log('Rendering home page...');
-    
+
     const productsGrid = document.getElementById('products-grid');
     const categoriesGrid = document.getElementById('categories-grid');
-    
+
     if (!productsGrid || !categoriesGrid) {
         console.error('Required elements not found for home page');
         return;
     }
-    
+
     // Render products
     productsGrid.innerHTML = '';
     state.products.slice(0, 6).forEach(product => {
         const productCard = createProductCard(product);
         productsGrid.appendChild(productCard);
     });
-    
+
     // Render categories
     categoriesGrid.innerHTML = '';
     state.categories.slice(0, 6).forEach(category => {
@@ -521,19 +521,19 @@ function renderHomePage() {
 // Render Categories Page
 function renderCategoriesPage() {
     console.log('Rendering categories page...');
-    
+
     const allCategoriesGrid = document.getElementById('all-categories-grid');
     const loadingElement = elements.loading.categories;
-    
+
     if (!allCategoriesGrid) {
         console.error('Categories grid element not found');
         return;
     }
-    
+
     if (loadingElement) {
         loadingElement.style.display = 'none';
     }
-    
+
     allCategoriesGrid.innerHTML = '';
     state.categories.forEach(category => {
         const categoryCard = createCategoryCard(category);
@@ -544,7 +544,7 @@ function renderCategoriesPage() {
 // Render Product Detail Page
 function renderProductDetailPage() {
     console.log('Rendering product detail page...');
-    
+
     const product = state.currentProduct;
     if (!product) return;
 
@@ -572,17 +572,17 @@ function renderProductDetailPage() {
     // Update product info
     const productName = document.getElementById('product-name');
     if (productName) productName.textContent = product.name || 'Unnamed Product';
-    
+
     const price = product.price || 0;
     const discount = product.discount || 0;
     const discountedPrice = price * (1 - (discount / 100));
-    
+
     const priceDiscounted = document.getElementById('product-price-discounted');
     if (priceDiscounted) priceDiscounted.textContent = `$${discountedPrice.toFixed(2)}`;
-    
+
     const priceOriginal = document.getElementById('price-original');
     const productDiscount = document.getElementById('product-discount');
-    
+
     if (discount > 0) {
         if (priceOriginal) priceOriginal.textContent = `$${price.toFixed(2)}`;
         if (productDiscount) productDiscount.textContent = `-${discount}%`;
@@ -590,7 +590,7 @@ function renderProductDetailPage() {
         if (priceOriginal) priceOriginal.textContent = '';
         if (productDiscount) productDiscount.textContent = '';
     }
-    
+
     const productDescription = document.getElementById('product-description');
     if (productDescription) productDescription.textContent = product.description || 'No description available';
 
@@ -610,25 +610,25 @@ function renderProductDetailPage() {
 // Render Favorites Page
 function renderFavoritesPage() {
     console.log('Rendering favorites page...');
-    
+
     const favoritesGrid = document.getElementById('favorites-grid');
     const loadingElement = elements.loading.favorites;
-    
+
     if (!favoritesGrid) {
         console.error('Favorites grid element not found');
         return;
     }
-    
+
     if (loadingElement) {
         loadingElement.style.display = 'none';
     }
-    
+
     favoritesGrid.innerHTML = '';
-    
-    const favoriteProducts = state.products.filter(product => 
+
+    const favoriteProducts = state.products.filter(product =>
         state.favorites.has(product.id)
     );
-    
+
     if (favoriteProducts.length === 0) {
         favoritesGrid.innerHTML = `
             <div class="empty-state">
@@ -639,7 +639,7 @@ function renderFavoritesPage() {
         `;
         return;
     }
-    
+
     favoriteProducts.forEach(product => {
         const productCard = createProductCard(product);
         favoritesGrid.appendChild(productCard);
@@ -649,11 +649,11 @@ function renderFavoritesPage() {
 // Render Profile Page
 function renderProfilePage() {
     console.log('Rendering profile page...');
-    
+
     if (!state.currentUser.profile) {
         return;
     }
-    
+
     elements.profile.name.textContent = state.currentUser.profile.name || 'Unknown User';
     elements.profile.phone.textContent = state.currentUser.profile.phone || 'Not provided';
     elements.profile.nameInput.value = state.currentUser.profile.name || '';
@@ -663,14 +663,14 @@ function renderProfilePage() {
 // Render Admin Page
 function renderAdminPage() {
     console.log('Rendering admin page...');
-    
+
     if (!elements.admin.productsTable) {
         console.error('Admin products table element not found');
         return;
     }
-    
+
     elements.admin.productsTable.innerHTML = '';
-    
+
     state.products.forEach(product => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -684,7 +684,7 @@ function renderAdminPage() {
         `;
         elements.admin.productsTable.appendChild(row);
     });
-    
+
     // Add event listeners for edit/delete buttons
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -692,7 +692,7 @@ function renderAdminPage() {
             alert(`Edit product with ID: ${productId}`);
         });
     });
-    
+
     document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const productId = e.target.getAttribute('data-id');
@@ -718,11 +718,11 @@ function renderAdminPage() {
 function createProductCard(product) {
     const card = document.createElement('div');
     card.className = 'product-card';
-    
+
     const price = product.price || 0;
     const discount = product.discount || 0;
     const discountedPrice = price * (1 - (discount / 100));
-    
+
     card.innerHTML = `
         <div style="position: relative;">
             <img src="${product.imageUrls?.[0] || 'https://placehold.co/300x200'}" 
@@ -748,7 +748,7 @@ function createProductCard(product) {
             </div>
         </div>
     `;
-    
+
     // Add event listeners
     const likeButton = card.querySelector('.like-button');
     if (likeButton) {
@@ -757,12 +757,12 @@ function createProductCard(product) {
             toggleFavorite(product.id);
         });
     }
-    
+
     card.addEventListener('click', () => {
         state.currentProduct = product;
         switchPage('productDetail');
     });
-    
+
     return card;
 }
 
@@ -776,18 +776,18 @@ function createCategoryCard(category) {
         </div>
         <div class="category-name">${category.name || 'Unnamed'}</div>
     `;
-    
+
     card.addEventListener('click', () => {
         alert(`Filtering by category: ${category.name || 'Unnamed'}`);
     });
-    
+
     return card;
 }
 
 // Toggle Favorite
 async function toggleFavorite(productId) {
     console.log('Toggling favorite for product:', productId);
-    
+
     try {
         // Toggle in local state first for immediate feedback
         if (state.favorites.has(productId)) {
@@ -800,21 +800,21 @@ async function toggleFavorite(productId) {
         const userRef = db.collection('users').doc(state.currentUser.uid);
         const favoritesArray = Array.from(state.favorites);
         await userRef.update({ favorites: favoritesArray });
-        
+
         console.log('Favorites updated in Firebase');
-        
+
         // Update UI immediately
         updateFavoriteButtons();
-        
+
         // If we're on favorites page, re-render it
         if (state.currentPage === 'favorites') {
             renderFavoritesPage();
         }
-        
+
     } catch (error) {
         console.error('Error toggling favorite:', error);
         alert('Failed to update favorites. Please try again.');
-        
+
         // Revert local state change on error
         if (state.favorites.has(productId)) {
             state.favorites.delete(productId);
@@ -829,7 +829,7 @@ function updateFavoriteButtons() {
     document.querySelectorAll('.like-button').forEach(button => {
         const productId = button.getAttribute('data-product-id');
         const icon = button.querySelector('i');
-        
+
         if (icon) {
             if (state.favorites.has(productId)) {
                 icon.className = 'fas fa-heart';
@@ -853,7 +853,7 @@ function updateCartCount() {
 function startCarousel() {
     const carousel = document.getElementById('carousel');
     if (!carousel) return;
-    
+
     setInterval(() => {
         state.carouselIndex = (state.carouselIndex + 1) % 3;
         carousel.style.transform = `translateX(-${state.carouselIndex * 100}%)`;
