@@ -81,7 +81,7 @@ async function initApp() {
     if (token) {
         // Token exists, try to get user data from server
         try {
-            const response = await fetch('https://us-central1-miniapp-78bb0.cloudfunctions.net/validateToken', {
+            const response = await fetch('https://validatetoken-oo5yfooloq-uc.a.run.app', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -126,7 +126,7 @@ async function initApp() {
                 console.log('Telegram user:', initData?.user);
 
                 // Serverga yuborish
-                const response = await fetch('https://us-central1-miniapp-78bb0.cloudfunctions.net/authTelegram', {
+                const response = await fetch('https://authtelegram-oo5yfooloq-uc.a.run.app', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
