@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <img src="https://via.placeholder.com/50x50?text=M" alt="Logo">
+                    <span>Market</span>
+                </div>
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Mahsulotlarni toping">
+                </div>
+                <button class="close-btn">×</button>
+            </div>
+        </header>
+
+        <!-- Banner -->
+        <div class="banner">
+            <div class="banner-content">
+                <div class="banner-image">
+                    <img src="https://via.placeholder.com/100x60?text=Image" alt="Banner">
+                </div>
+                <div class="banner-text">
+                    <h3>BUTUN OILA UCHUN!</h3>
+                    <p>Mahsulotlarga 74% gacha chegirmalar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active">Siz uchun</div>
+            <div class="nav-tab">WOW-narx</div>
+            <div class="nav-tab">Kiyim va poyabzal</div>
+            <div class="nav-tab">Uy uchun tovarlar</div>
+        </div>
+
+        <!-- Product Grid -->
+        <main class="main-content">
+            <div class="product-grid" id="product-grid">
+                <!-- Mahsulotlar shu yerga yuklanadi -->
+            </div>
+        </main>
+
+        <!-- Footer Navigation -->
+        <nav class="footer-nav">
+            <div class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Uy</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-bars"></i>
+                <span>Kategoriyalar</span>
+            </div>
+            <div class="nav-item">
+                <i class="far fa-heart"></i>
+                <span>Sevimlilar</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Savatcha</span>
+            </div>
+            <div class="nav-item">
+                <i class="fas fa-user"></i>
+                <span>Profil</span>
+            </div>
+        </nav>
+    </div>
+
+
+    <!-- @telegram-apps/sdk kutubxonasini qo'shing -->
+    <script src="https://unpkg.com/@telegram-apps/sdk@latest/dist/index.iife.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
